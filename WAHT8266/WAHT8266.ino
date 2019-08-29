@@ -68,7 +68,7 @@ const char wifiInitialApPassword[] = "12345678";
 #define STRING_LEN 128
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "1.01"
+#define CONFIG_VERSION "1.02"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -192,16 +192,16 @@ void setup()
   if (strlen(SNValue)!=0){  
     // 将获取到的sn转换为usekey gateway
         strcpy(stringBuffer,SNValue);
-        KEY1=strtok_r(stringBuffer,"_",&p);
+        KEY1=strtok_r(stringBuffer,"_",&p); //usekey
         Serial.println(KEY1);
-        KEY2=strtok_r(NULL,"_",&p);
+        KEY2=strtok_r(NULL,"_",&p); //gateway
         Serial.println(KEY2);   
            
   //      hellotest(SNValue);   //for test
     if ((KEY1 != NULL)&&(KEY2 != NULL)){
       lwc = new LeWeiClient(KEY1, KEY2);
     }else{
-      lwc = new LeWeiClient(LW_USERKEY, LW_GATEWAY);
+      lwc = new LeWeiClient(SNValue);
     }
   }
  

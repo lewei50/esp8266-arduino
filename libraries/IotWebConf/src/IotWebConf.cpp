@@ -132,14 +132,17 @@ boolean IotWebConf::init()
   if (!validConfig)
   {
     // -- No config
-    this->_apPassword[0] = '\0';
+    strcpy(this->_apPassword,this->_initialApPassword);
+    //this->_apPassword[0] = '\0';
     this->_wifiSsid[0] = '\0';
     this->_wifiPassword[0] = '\0';
     this->_apTimeoutMs = IOTWEBCONF_DEFAULT_AP_MODE_TIMEOUT_MS;
+    //Serial.println("No config");
   }
   else
   {
     this->_apTimeoutMs = atoi(this->_apTimeoutStr) * 1000;
+    //Serial.println("has config");
   }
 
   // -- Setup mdns
@@ -440,12 +443,15 @@ void IotWebConf::handleConfig()
           pitem.replace("{p}", current->placeholder == NULL ? "" : current->placeholder);
           snprintf(parLength, 5, "%d", current->getLength());
           pitem.replace("{l}", parLength);
+          /*
           if (strcmp("password", current->type) == 0)
           {
             // -- Value of password is not rendered
             pitem.replace("{v}", "");
           }
-          else if (this->_server->hasArg(current->getId()))
+          else 
+          */
+          if (this->_server->hasArg(current->getId()))
           {
             // -- Value from previous submit
             pitem.replace("{v}", this->_server->arg(current->getId()));

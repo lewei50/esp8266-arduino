@@ -68,7 +68,7 @@ const char wifiInitialApPassword[] = "12345678";
 #define STRING_LEN 128
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "1.02"
+#define CONFIG_VERSION "1.03"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -81,12 +81,22 @@ const char wifiInitialApPassword[] = "12345678";
 
 //delay between updates
 unsigned long previousMillis = 0; // 定义上一次loop到当前loop的时间间隔，数值类型为毫秒，变量类型为无符号长整型。
-const long interval = 30*1000; // 此处为1000毫秒 上传间隔调试完成将30改为合适的设置 比如60s 或者 300s
+unsigned long previousMillis10s = 0; // 定义上一次loop到当前loop的时间间隔，数值类型为毫秒，变量类型为无符号长整型。
+long interval = 60*1000; // 此处为1000毫秒 上传间隔调试完成将30改为合适的设置 比如60s 或者 300s
 
+
+//hardware v1
+#define ONE_WIRE_BUS D5
+#define SDA D5
+#define SCL D6
+
+//hardware v2
 // Data wire is plugged into port 2 on the Arduino
+/*
 #define ONE_WIRE_BUS D2
 #define SDA D2
 #define SCL D1
+*/
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -103,9 +113,9 @@ String DataTH;
 #define LW_USERKEY "xxxxxxxxxxxxxxxxxxxx"
 #define LW_GATEWAY "01"
 int commaPosition;  
-//char *KEY1;
-//char *KEY2;
-//char *p;
+char *KEY1;
+char *KEY2;
+char *p;
 
 // -- Callback method declarations.
 void wifiConnected();
@@ -118,55 +128,28 @@ WebServer server(80);
 HTTPUpdateServer httpUpdater;
 
 char SNValue[STRING_LEN];
-//char stringBuffer[STRING_LEN];
+char intervalValue[STRING_LEN];
+char stringBuffer[STRING_LEN];
 
 IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword, CONFIG_VERSION);
 IotWebConfParameter SNParam = IotWebConfParameter("SN", "SN", SNValue, STRING_LEN);
+IotWebConfSeparator separator1 = IotWebConfSeparator();
+IotWebConfParameter intervalParam = IotWebConfParameter("Interval Time (s)", "interval", intervalValue, STRING_LEN,"number","60..3600","300","min='60' max='3600' step='1'");
 
 LeWeiClient *lwc;
 
+/********************************************\
+|* 功能： 测试函数 不用可以删除              *|
+\********************************************/
 void hellotest(const char * test) //for test
 {
      Serial.print("test const char ...");
        Serial.println(test);
 }
-
-boolean needReset = false;
-
-void setup() 
-{
-  Serial.begin(115200);
-  Serial.println();
-  Serial.println("Starting up...");
-
-  iotWebConf.setStatusPin(STATUS_PIN);
-  iotWebConf.setConfigPin(CONFIG_PIN);
-  iotWebConf.addParameter(&SNParam);
-  iotWebConf.setConfigSavedCallback(&configSaved);
-  iotWebConf.setFormValidator(&formValidator);
-  iotWebConf.setWifiConnectionCallback(&wifiConnected);
-  iotWebConf.setupUpdateServer(&httpUpdater);
-  
-  // -- Initializing the configuration.
-  boolean validConfig = iotWebConf.init();
-  if (!validConfig)
-  {
-    SNValue[0] = '\0';
-  }
-
-
-  // -- Set up required URL handlers on the web server.
-    server.on("/", handleRoot);
-    server.on("/config", []{ iotWebConf.handleConfig(); });
-   // server.on("/index.html", HTTP_GET, []() {
-    //  server.send(200, "text/plain", "Hello World!");
-    //});
-    server.on("/description.xml", HTTP_GET, []() {
-      SSDP.schema(server.client());
-    });  
-    server.on("/monitorjson", monitorjson);
-    server.onNotFound([](){ iotWebConf.handleNotFound(); });
-
+/********************************************\
+|* 功能： 初始化ssdp              *|
+\********************************************/
+void init_ssdp(){
     String ssdpname= "eMonitor_";
     int dd = strlen(SNValue);
     for(int i=(dd-8);i<dd;i++){
@@ -186,26 +169,117 @@ void setup()
     SSDP.setManufacturer("lewei50");
     SSDP.setManufacturerURL("http://www.lewei50.com");
     SSDP.begin();
-    Serial.println("Ready.");
+    Serial.println("Ready."); 
+}
+/********************************************\
+|* 功能： 温湿度处理函数              *|
+\********************************************/
+void handle_ht(){
+      if(myHTU21D.begin(SDA,SCL) == true){
+          Serial.println(F("HTU21D, SHT21 sensor is active"));
+          /* DEMO - 1 */
+          /*  Serial.println(F("DEMO 1: 12-Bit Resolution"));
+          Serial.print(F("Humidity............: ")); Serial.print(myHTU21D.readHumidity());            Serial.println(F(" +-2%"));
+          Serial.print(F("Compensated Humidity: ")); Serial.print(myHTU21D.readCompensatedHumidity()); Serial.println(F(" +-2%"));
+          
+          Serial.println(F("DEMO 1: 14-Bit Resolution")); 
+          Serial.print(F("Temperature.........: ")); Serial.print(myHTU21D.readTemperature()); Serial.println(F(" +-0.3C"));    
+          */
+          //H1 = myHTU21D.readHumidity();
+          H1 = myHTU21D.readCompensatedHumidity(); //补偿湿度
+          T1 = myHTU21D.readTemperature();
+          SensorType = "HTU21D/SI7021 T1:" + String(T1) + "C H1:" + String(H1) + "%";
+          DataTH = String(T1) + "," + String(H1);
+      }else{
+          sensors.begin();
+          Serial.println(F("DS18B20 sensor is active")); 
+          Serial.print("Requesting temperatures...");
+          sensors.requestTemperatures(); // Send the command to get temperatures
+          Serial.println("DONE");
+          // We use the function ByIndex, and as an example get the temperature from the first sensor only.
+          float tempC = sensors.getTempCByIndex(0);
+          // Check if reading was successful
+          if(tempC != DEVICE_DISCONNECTED_C) 
+          {
+            Serial.print("Temperature for the device 1 (index 0) is: ");
+            Serial.println(tempC);
+            T1 = tempC;
+            H1 = 255;
+            SensorType = "DS18B20 T1:" + String(T1) + "C";
+            DataTH = String(T1);
+          } 
+          else
+          {
+             T1 = 255;
+             H1 = 255;
+             SensorType = "No sensor";
+             DataTH = "";
+            Serial.println("Error: Could not read temperature data");
+            Serial.println("Error: No sensor connect!");
+          }   
+      }
+}
+/********************************************\
+|* 功能： 数据上传              *|
+\********************************************/
+void update_lw(){        
+      if(T1 < 255){ 
+          if (lwc) {
+              Serial.print("---connect to lewei50.com ...... \r\n");
+              //T1,H1.. must using the same name setting on lewei50.com .
+              lwc->append("T1", T1);
+              if (H1 < 255){
+                lwc->append("H1", H1);
+              }
+              Serial.print("send ");
+              lwc->send();
+              Serial.print("---send completed \r\n");
+          }
+      }
+}
+boolean needReset = false;
 
-//  if (SNValue[0] != '\0'){    
-  if (strlen(SNValue)!=0){  
-    lwc = new LeWeiClient(SNValue);
-//    // 将获取到的sn转换为usekey gateway
-//        strcpy(stringBuffer,SNValue);
-//        KEY1=strtok_r(stringBuffer,"_",&p); //usekey
-//        Serial.println(KEY1);
-//        KEY2=strtok_r(NULL,"_",&p); //gateway
-//        Serial.println(KEY2);   
-//           
-//  //      hellotest(SNValue);   //for test
-//    if ((KEY1 != NULL)&&(KEY2 != NULL)){
-//      lwc = new LeWeiClient(KEY1, KEY2);
-//    }else{
-//      lwc = new LeWeiClient(SNValue);
-//    }
+void setup() 
+{
+  Serial.begin(9600);
+  Serial.println();
+  Serial.println("Starting up...");
+
+  iotWebConf.setStatusPin(STATUS_PIN);
+  iotWebConf.setConfigPin(CONFIG_PIN);
+  iotWebConf.addParameter(&SNParam);
+  iotWebConf.addParameter(&separator1);
+  iotWebConf.addParameter(&intervalParam);
+  iotWebConf.setConfigSavedCallback(&configSaved);
+  iotWebConf.setFormValidator(&formValidator);
+  iotWebConf.setWifiConnectionCallback(&wifiConnected);
+  iotWebConf.setupUpdateServer(&httpUpdater);
+  
+  // -- Initializing the configuration.
+  boolean validConfig = iotWebConf.init();
+  if (!validConfig)
+  {
+    SNValue[0] = '\0';
   }
- 
+
+  // -- Set up required URL handlers on the web server.
+  server.on("/", handleRoot);
+  server.on("/config", []{ iotWebConf.handleConfig(); });
+  // server.on("/index.html", HTTP_GET, []() {
+  //  server.send(200, "text/plain", "Hello World!");
+  //});
+  server.on("/description.xml", HTTP_GET, []() {
+    SSDP.schema(server.client());
+  });  
+  server.on("/monitorjson", monitorjson);
+  server.onNotFound([](){ iotWebConf.handleNotFound(); });
+
+
+  init_ssdp();//初始化ssdp
+
+  if (strlen(SNValue)!=0){  
+      lwc = new LeWeiClient(SNValue);
+  } 
 }
 
 void loop() 
@@ -222,72 +296,17 @@ void loop()
 
   unsigned long currentMillis = millis();   // 记录程序执行到此处的时间，数值类型为毫秒
   // 当前时间与上一次记录时间的差值，如果大于等于internal数值，则执行内部操作，否则进入下一次loop循环。
-  if (currentMillis - previousMillis >= interval) {   
-    previousMillis = currentMillis;  
-    //预执行的用户程序
-
-  if(myHTU21D.begin(SDA,SCL) == true){
-    Serial.println(F("HTU21D, SHT21 sensor is active"));
-
-  /* DEMO - 1 */
-/*  Serial.println(F("DEMO 1: 12-Bit Resolution"));
-  Serial.print(F("Humidity............: ")); Serial.print(myHTU21D.readHumidity());            Serial.println(F(" +-2%"));
-  Serial.print(F("Compensated Humidity: ")); Serial.print(myHTU21D.readCompensatedHumidity()); Serial.println(F(" +-2%"));
-
-  Serial.println(F("DEMO 1: 14-Bit Resolution")); 
-  Serial.print(F("Temperature.........: ")); Serial.print(myHTU21D.readTemperature()); Serial.println(F(" +-0.3C"));    
-*/
-    //H1 = myHTU21D.readHumidity();
-    H1 = myHTU21D.readCompensatedHumidity(); //补偿湿度
-    T1 = myHTU21D.readTemperature();
-    SensorType = "HTU21D/SI7021 T1:" + String(T1) + "C H1:" + String(H1) + "%";
-    DataTH = String(T1) + "," + String(H1);
-  }else{
-    sensors.begin();
-    Serial.println(F("DS18B20 sensor is active")); 
-
-    Serial.print("Requesting temperatures...");
-    sensors.requestTemperatures(); // Send the command to get temperatures
-    Serial.println("DONE");
-    // We use the function ByIndex, and as an example get the temperature from the first sensor only.
-    float tempC = sensors.getTempCByIndex(0);
-    // Check if reading was successful
-    if(tempC != DEVICE_DISCONNECTED_C) 
-    {
-      Serial.print("Temperature for the device 1 (index 0) is: ");
-      Serial.println(tempC);
-      T1 = tempC;
-      H1 = 255;
-      SensorType = "DS18B20 T1:" + String(T1) + "C";
-      DataTH = String(T1);
-    } 
-    else
-    {
-       T1 = 255;
-       H1 = 255;
-       SensorType = "No sensor";
-       DataTH = "";
-      Serial.println("Error: Could not read temperature data");
-      Serial.println("Error: No sensor connect!");
-    }   
-     
+  if (currentMillis - previousMillis10s >= 5000) {   
+      previousMillis10s = currentMillis;  
+      //预执行的用户程序
+      handle_ht();
   }
-
-
-   if(T1 < 255){ 
-    if (lwc) {
-      Serial.print("---connect to lewei50.com ...... \r\n");
-      //T1,H1.. must using the same name setting on lewei50.com .
-      lwc->append("T1", T1);
-      if (H1 < 255){
-        lwc->append("H1", H1);
-      }
-      Serial.print("send ");
-      lwc->send();
-      Serial.print("---send completed \r\n");
-    }
-   }
-      
+  //update datas to lewei50  
+  interval = atoi(intervalValue) * 1000;
+  if (currentMillis - previousMillis >= interval) {   
+      previousMillis = currentMillis;  
+      //预执行的用户程序
+      update_lw(); 
   }  
   
 }
@@ -310,17 +329,22 @@ void handleRoot()
   s += SensorType;
   s += "<li>SN value: ";
   s += SNValue;
+  s += "<li>Interval Time: ";
+  s += intervalValue;
+  s += " second";
   s += "</ul>";
-  s += "Go to <a href='config'>configure page</a> to change values.(user:admin password:your AP password)";
+  s += "Go to <a href='config'>configure page</a> to change values.";
+  s += "<ul>";
+  s += "<li>(user:admin password:your password(default: 12345678))";
+  s += "</ul>";
   s += "</body></html>\n";
 
   server.send(200, "text/html", s);
 }
 
 /**
- * Handle web requests to "/" path.
- */
- 
+ * Handle web requests to "/monitorjson" path.
+ */ 
 void monitorjson()
 {
   // -- Let IotWebConf test and handle captive portal requests.

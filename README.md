@@ -3,7 +3,7 @@ Esp8266 arduino lib and application for lewei50/devicebit iot platform
 
 # Quick links
 
-- [WAHT8266](/WAHT8266)
+- [WATH8266](/WATH8266)
 - [libraries](/libraries)
 - [API list](https://www.lewei50.com/dev/apiList?version=1&sk=71)
 - [lewei50 documentation](https://www.kancloud.cn/lewei50/lewei50-usermanual/811104)

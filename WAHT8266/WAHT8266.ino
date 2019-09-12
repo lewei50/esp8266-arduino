@@ -103,9 +103,9 @@ String DataTH;
 #define LW_USERKEY "xxxxxxxxxxxxxxxxxxxx"
 #define LW_GATEWAY "01"
 int commaPosition;  
-char *KEY1;
-char *KEY2;
-char *p;
+//char *KEY1;
+//char *KEY2;
+//char *p;
 
 // -- Callback method declarations.
 void wifiConnected();
@@ -118,7 +118,7 @@ WebServer server(80);
 HTTPUpdateServer httpUpdater;
 
 char SNValue[STRING_LEN];
-char stringBuffer[STRING_LEN];
+//char stringBuffer[STRING_LEN];
 
 IotWebConf iotWebConf(thingName, &dnsServer, &server, wifiInitialApPassword, CONFIG_VERSION);
 IotWebConfParameter SNParam = IotWebConfParameter("SN", "SN", SNValue, STRING_LEN);
@@ -190,19 +190,20 @@ void setup()
 
 //  if (SNValue[0] != '\0'){    
   if (strlen(SNValue)!=0){  
-    // 将获取到的sn转换为usekey gateway
-        strcpy(stringBuffer,SNValue);
-        KEY1=strtok_r(stringBuffer,"_",&p); //usekey
-        Serial.println(KEY1);
-        KEY2=strtok_r(NULL,"_",&p); //gateway
-        Serial.println(KEY2);   
-           
-  //      hellotest(SNValue);   //for test
-    if ((KEY1 != NULL)&&(KEY2 != NULL)){
-      lwc = new LeWeiClient(KEY1, KEY2);
-    }else{
-      lwc = new LeWeiClient(SNValue);
-    }
+    lwc = new LeWeiClient(SNValue);
+//    // 将获取到的sn转换为usekey gateway
+//        strcpy(stringBuffer,SNValue);
+//        KEY1=strtok_r(stringBuffer,"_",&p); //usekey
+//        Serial.println(KEY1);
+//        KEY2=strtok_r(NULL,"_",&p); //gateway
+//        Serial.println(KEY2);   
+//           
+//  //      hellotest(SNValue);   //for test
+//    if ((KEY1 != NULL)&&(KEY2 != NULL)){
+//      lwc = new LeWeiClient(KEY1, KEY2);
+//    }else{
+//      lwc = new LeWeiClient(SNValue);
+//    }
   }
  
 }

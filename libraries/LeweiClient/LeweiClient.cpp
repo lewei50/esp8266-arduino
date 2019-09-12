@@ -78,11 +78,49 @@ LeWeiClient::LeWeiClient(const char * user_sn)
 
     begin = false;
     end = false;
+    
+    bool bUseSn = false;
+    
+    char *user_key;
+	char *gateway;
+	char *p;
+    char stringBuffer[128];
+    
+    strcpy(stringBuffer,user_sn);
+    if (strlen(stringBuffer)!=0){  
+    // 将获取到的sn转换为usekey gateway
+        user_key=strtok_r(stringBuffer,"_",&p); //usekey
+        Serial.println(user_key);
+        gateway=strtok_r(NULL,"_",&p); //gateway
+        Serial.println(gateway);   
+           
+  //      hellotest(SNValue);   //for test
+    if ((user_key != NULL)&&(gateway != NULL)){
+      bUseSn = false;
+    }else{
+      bUseSn = true;
+    }
+  }
 
     // build head.
-    tmp = sprintf(ptr,
+    if(bUseSn)
+    {
+    	tmp = sprintf(ptr,
                   "POST /api/V1/Gateway/UpdateSensorsBySN/%s HTTP/1.1\r\n",
                   user_sn);
+    }
+    else
+	{
+		tmp = sprintf(ptr,
+                  "POST /api/V1/Gateway/UpdateSensors/%s HTTP/1.1\r\n",
+                  gateway);
+	    head_length += tmp;
+	    ptr += tmp;
+	    // build userkey.
+	    tmp = sprintf(ptr,
+	                  "userkey: %s\r\n",
+	                  user_key);
+	}
     head_length += tmp;
     ptr += tmp;
 
@@ -92,7 +130,7 @@ LeWeiClient::LeWeiClient(const char * user_sn)
     ptr += tmp;
 
     // build User-Agent.
-    tmp = sprintf(ptr, "User-Agent: RT-Thread ART\r\n");
+    tmp = sprintf(ptr, "User-Agent: ESP8266\r\n");
     head_length += tmp;
     ptr += tmp;
 

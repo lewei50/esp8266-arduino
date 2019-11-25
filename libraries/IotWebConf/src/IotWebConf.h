@@ -44,7 +44,7 @@
 #define IOTWEBCONF_CONFIG_USE_MDNS
 
 // -- Logs progress information to Serial if enabled.
-#define IOTWEBCONF_DEBUG_TO_SERIAL
+//#define IOTWEBCONF_DEBUG_TO_SERIAL
 
 // -- Logs passwords to Serial if enabled.
 //#define IOTWEBCONF_DEBUG_PWD_TO_SERIAL

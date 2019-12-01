@@ -50,3 +50,4 @@ Starting with 1.6.4, Arduino allows installation of third-party platform package
 - [OneWire](https://github.com/PaulStoffregen/OneWire)
 - [DallasTemperature](https://github.com/milesburton/Arduino-Temperature-Control-Library)
 - [FastCRC](https://github.com/FrankBoesing/FastCRC)
+- [ArduinoJson](https://github.com/bblanchon/ArduinoJson)

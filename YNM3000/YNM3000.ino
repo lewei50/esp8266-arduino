@@ -59,6 +59,7 @@
 #include <Wire.h>
 #include <HTU21D.h>
 #include <FastCRC.h> //for S8
+#include <ArduinoJson.h>
 
 // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char thingName[] = "eMonitor";
@@ -69,7 +70,7 @@ const char wifiInitialApPassword[] = "12345678";
 #define STRING_LEN 128
 
 // -- Configuration specific key. The value should be modified if config structure was changed.
-#define CONFIG_VERSION "1.03"
+#define CONFIG_VERSION "1.04"
 
 // -- When CONFIG_PIN is pulled to ground on startup, the Thing will use the initial
 //      password to buld an AP. (E.g. in case of lost password)
@@ -151,7 +152,8 @@ HTU21D myHTU21D(HTU21D_RES_RH12_TEMP14);
 float T1;
 float H1;
 String SensorType = "No sensor";
-String jsondata;
+//String jsondata;
+String jsondata="{\"method\":\"uploadsn\",\"mac\":\"12:34:56:78:90:ab\",\"version\":\"1.01\",\"server\":\"PM\",\"SN\":\"asdfghj\",\"Data\":[25.12,50.22,12,17,0.01,0]}";
 
 #define LW_USERKEY "xxxxxxxxxxxxxxxxxxxx"
 #define LW_GATEWAY "01"
@@ -189,7 +191,9 @@ LeWeiClient *lwc;
 
 boolean needReset = false;
 
-
+DynamicJsonBuffer  jsonBuffer(200);
+JsonObject& root = jsonBuffer.parseObject(jsondata);
+  
 /********************************************\
 |* 功能： 测试函数 不用可以删除              *|
 \********************************************/
@@ -205,7 +209,7 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println();
-  Serial.println("Starting up...");
+  Serial.println("Starting up..."); 
 
   iotWebConf.setStatusPin(STATUS_PIN);
   iotWebConf.setConfigPin(CONFIG_PIN);
@@ -270,7 +274,7 @@ void loop()
     iotWebConf.delay(1000);
     ESP.restart();
   }
-  
+   
   while (Serial.available()>0) 
     {   
       serialdata();
@@ -293,7 +297,13 @@ void loop()
         HCHO1=0;  
       }
       SensorType = "T1:" + String(T1) + "C H1:" + String(H1) + "% PM2.5:" + String(PM25) + "ug/m3 AQI:" + String(AQI) + " HCHO:" + String(float(HCHO1)/1000) + "mg/m3 CO2:" + String(CO2) + "ppm";
-      jsondata = String(T1) + "," + String(H1) + "," + String(PM25) + "," + String(AQI) + "," + String(float(HCHO1)/1000) + "," + String(CO2);  //[T,H,pm25,aqi,hcho,co2]
+      if(T1 < 255){ root["Data"][0] = T1;}
+      if(H1 < 255){ root["Data"][1] = H1;}
+      root["Data"][2] = PM25;
+      root["Data"][3] = AQI;
+      root["Data"][4] = float(HCHO1)/1000;
+      root["Data"][5] = CO2;
+
   }
    
   interval = atoi(intervalValue) * 1000;
@@ -619,7 +629,9 @@ void handle_ht(){
           */
           //H1 = myHTU21D.readHumidity();
           H1 = myHTU21D.readCompensatedHumidity(); //补偿湿度
+          H1 = float( int(H1*100) )/ 100;
           T1 = myHTU21D.readTemperature();
+          T1 = float( int(T1*100) )/ 100;
       }else{
           sensors.begin();
           //Serial.println(F("DS18B20 sensor is active")); 
@@ -736,16 +748,11 @@ void monitorjson()
     // -- Captive portal request were already served.
     return;
   }
-  String s = "{\"method\":\"uploadsn\",\"mac\":\"";
-  s += WiFi.macAddress();
-  s += "\",\"version\":\"";
-  s += CONFIG_VERSION;
-  s += "\",\"server\":\"PM\",\"SN\":\"";
-  s += SNValue;
-  s += "\",\"Data\":[";
-  s += jsondata;
-  s += "]}";
-  
+  root["mac"] = WiFi.macAddress();
+  root["version"] = CONFIG_VERSION;
+  root["SN"] = SNValue;
+  String s;
+  root.printTo(s);
   server.send(200, "text/html", s);
 }
 

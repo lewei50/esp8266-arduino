@@ -1,4 +1,5 @@
 <a name="index">**Index**</a>
+
 <a href="#0">WATH8266 Description</a>  
 <a href="#1">open source</a>  
 <a href="#2">user manual</a>  
@@ -6,7 +7,7 @@
 <a href="#4">Devicebit</a>  
 
 
-# <a name="0">WATH8266 Description</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="0">WATH8266 Description</a>
 
 WATH-8266 is an open source Wi-Fi  temperature and humidity data logger which is base on esp8266-arduino. 
 
@@ -18,13 +19,13 @@ It also can be integrated with the cloud service of  https://www.devicebit.com
 
 
 
-# <a name="1">open source</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="1">open source</a>
 
 
 
 
 
-# <a name="2">user manual</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="2">user manual</a>
 
 ![WATH8266-1](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-1.jpg)
 
@@ -36,10 +37,10 @@ It also can be integrated with the cloud service of  https://www.devicebit.com
 
 
 
-# <a name="3">Home Assistant</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="3">Home Assistant</a>
 
 
 
-# <a name="4">Devicebit</a><a style="float:right;text-decoration:none;" href="#index">[Top]</a>
+# <a name="4">Devicebit</a>
 
  

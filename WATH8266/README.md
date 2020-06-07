@@ -16,10 +16,10 @@ It can be integrated into Home Assistant as a customer component.
 It also can be integrated with the cloud service of  https://www.devicebit.com
 
 
-![WATH8266-1](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-1.jpg)
 
 
-![WATH8266-2](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-2.jpg)
+
+![img](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpKS_68ZP078JJXP1IQ3D5MDJ.png)
 
 # <a name="1">open source</a>
 

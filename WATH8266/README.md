@@ -19,7 +19,7 @@ It also can be integrated with the cloud service of  https://www.devicebit.com
 
 
 
-![img](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpKS_68ZP078JJXP1IQ3D5MDJ.png)
+![WATH8266-11](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-11.jpg)
 
 # <a name="1">open source</a>
 

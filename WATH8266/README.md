@@ -15,21 +15,23 @@ The code and hardware is totally open.
 It can be integrated into Home Assistant as a customer component.
 It also can be integrated with the cloud service of  https://www.devicebit.com
 
-![](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/eMonitor-20181103-L1.jpg)
-
-
-
-# <a name="1">open source</a>
-
-
-
-
-
-# <a name="2">user manual</a>
 
 ![WATH8266-1](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-1.jpg)
 
+
 ![WATH8266-2](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-2.jpg)
+
+# <a name="1">open source</a>
+
+[Schematic PDF](https://github.com/lewei50/esp8266-arduino/blob/master/WATH8266/WATH8266.PDF)
+
+[Code ino](https://github.com/lewei50/esp8266-arduino/blob/master/WATH8266/WATH8266.ino)
+
+# <a name="2">user manual</a>
+
+
+
+
 
 ![WATH8266-3](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-3.jpg)
 

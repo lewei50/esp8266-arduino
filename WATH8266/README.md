@@ -32,9 +32,8 @@ It also can be integrated with the cloud service of  https://www.devicebit.com
 
 
 
-
-
 ![WATH8266-3](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-3.jpg)
+
 
 ![WATH8266-4](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpWATH8266-4.jpg)
 

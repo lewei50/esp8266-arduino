@@ -1,1 +1,1 @@
-![YNM3000](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpYNM3000.jpg)
+![YNM3000](https://leweidoc.oss-cn-hangzhou.aliyuncs.com/lewei50/img/iammeter/tmpliu/tmpYNM3000.jpg?x-oss-process=style/width600)

@@ -52,6 +52,7 @@
 /***************************************************************************************************/ 
 #include <ESP8266WiFi.h>   //get mac adderss
 #include <IotWebConf.h>
+#include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -59,7 +60,6 @@
 #include <Wire.h>
 #include <HTU21D.h>
 #include <FastCRC.h> //for S8
-#include <ArduinoJson.h>
 
 // -- Initial name of the Thing. Used e.g. as SSID of the own Access Point.
 const char thingName[] = "eMonitor";
@@ -80,6 +80,9 @@ const char wifiInitialApPassword[] = "12345678";
 //      First it will light up (kept LOW), on Wifi connection it will blink,
 //      when connected to the Wifi it will turn off (kept HIGH).
 #define STATUS_PIN LED_BUILTIN
+
+
+String ipStr = "192.168.1.1";
 
 //delay between updates
 unsigned long previousMillis = 0; // 定义上一次loop到当前loop的时间间隔，数值类型为毫秒，变量类型为无符号长整型。
@@ -133,6 +136,7 @@ void serialdata();
 #define SCL D6
 #define Sel_A D1
 #define Sel_B D2
+#define CS 2
 
 //hardware v2
 // Data wire is plugged into port 2 on the Arduino
@@ -152,8 +156,7 @@ HTU21D myHTU21D(HTU21D_RES_RH12_TEMP14);
 float T1;
 float H1;
 String SensorType = "No sensor";
-//String jsondata;
-String jsondata="{\"method\":\"uploadsn\",\"mac\":\"12:34:56:78:90:ab\",\"version\":\"1.01\",\"server\":\"PM\",\"SN\":\"asdfghj\",\"Data\":[25.12,50.22,12,17,0.01,0]}";
+String jsondata;
 
 #define LW_USERKEY "xxxxxxxxxxxxxxxxxxxx"
 #define LW_GATEWAY "01"
@@ -191,9 +194,7 @@ LeWeiClient *lwc;
 
 boolean needReset = false;
 
-DynamicJsonBuffer  jsonBuffer(200);
-JsonObject& root = jsonBuffer.parseObject(jsondata);
-  
+
 /********************************************\
 |* 功能： 测试函数 不用可以删除              *|
 \********************************************/
@@ -207,9 +208,12 @@ void hellotest(const char * test) //for test
 
 void setup() 
 {
+  pinMode(CS, OUTPUT);
+  digitalWrite(CS, LOW); 
+  delay(1000);
   Serial.begin(9600);
   Serial.println();
-  Serial.println("Starting up..."); 
+  Serial.println("Starting up...");
 
   iotWebConf.setStatusPin(STATUS_PIN);
   iotWebConf.setConfigPin(CONFIG_PIN);
@@ -241,13 +245,14 @@ void setup()
   server.onNotFound([](){ iotWebConf.handleNotFound(); });
 
 
+
   init_ssdp();//初始化ssdp
 
   if (strlen(SNValue)!=0){  
       lwc = new LeWeiClient(SNValue);
   }
 
-  
+ 
   pinMode(Sel_A, OUTPUT);
   pinMode(Sel_B, OUTPUT);
   digitalWrite(Sel_A, LOW);
@@ -266,6 +271,29 @@ delay(1000);
 
 void loop() 
 {
+    if(WiFi.status() == WL_CONNECTED){
+        // Set up mDNS responder:
+        // - first argument is the domain name, in this example
+        //   the fully-qualified domain name is "esp8266.local"
+        // - second argument is the IP address to advertise
+        //   we send our IP address on the WiFi network
+        String domainname= "eMonitor_";
+        int dd = strlen(SNValue);
+        for(int i=(dd-8);i<dd;i++){
+          domainname += SNValue[i];
+        }
+        if (!MDNS.begin(domainname)) {
+          //Serial.println("Error setting up MDNS responder!");
+         // while (1) {
+          //  delay(1000);
+          //}
+        }
+       // Serial.println("mDNS responder started");
+        MDNS.update();
+    }else{
+      
+    }
+
   // -- doLoop should be called as frequently as possible.
   iotWebConf.doLoop();
   if (needReset)
@@ -274,11 +302,14 @@ void loop()
     iotWebConf.delay(1000);
     ESP.restart();
   }
-   
+  
   while (Serial.available()>0) 
     {   
       serialdata();
      }
+
+    IPAddress ip = WiFi.localIP();
+    ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
 
   unsigned long currentMillis = millis();   // 记录程序执行到此处的时间，数值类型为毫秒,当前时间与上一次记录时间的差值，如果大于等于internal数值，则执行内部操作，否则进入下一次loop循环。
   if (currentMillis - previousMillis10s >= 1000) {   
@@ -288,8 +319,8 @@ void loop()
       sermode ++;
       if (sermode >3) sermode = 0; 
       chgmode(sermode); //0:hmi 1:pm25 2:hcho 3:co2
-      if (sermode == 2) Serial.write(hcho_cmd,7); //进入读取hcho模式,单独的甲醛模块
-      if (sermode == 3) Serial.write(co2_cmd,8); //进入读取CO2模式,单独的CO2模块
+      if (sermode == 2) Serial.write(hcho_cmd,7); //发送读取攀藤hcho指令,单独的甲醛模块
+      if (sermode == 3) Serial.write(co2_cmd,8); //发送读取S8-CO2指令,单独的CO2模块
       if (sermode == 0) refreshPage();  //进入读取hmi模式
       if(HCHO<0x3000){
         HCHO1=HCHO;  
@@ -297,13 +328,7 @@ void loop()
         HCHO1=0;  
       }
       SensorType = "T1:" + String(T1) + "C H1:" + String(H1) + "% PM2.5:" + String(PM25) + "ug/m3 AQI:" + String(AQI) + " HCHO:" + String(float(HCHO1)/1000) + "mg/m3 CO2:" + String(CO2) + "ppm";
-      if(T1 < 255){ root["Data"][0] = T1;}
-      if(H1 < 255){ root["Data"][1] = H1;}
-      root["Data"][2] = PM25;
-      root["Data"][3] = AQI;
-      root["Data"][4] = float(HCHO1)/1000;
-      root["Data"][5] = CO2;
-
+      jsondata = String(T1) + "," + String(H1) + "," + String(PM25) + "," + String(AQI) + "," + String(float(HCHO1)/1000) + "," + String(CO2);  //[T,H,pm25,aqi,hcho,co2]
   }
    
   interval = atoi(intervalValue) * 1000;
@@ -312,6 +337,23 @@ void loop()
       update_lw(); //update datas to lewei50 
   }  
   
+}
+/**********************************************************************
+* 函数名: unsigned char FucCheckSum(uchar *i,uchar ln)
+* 功能描述:求和校验（取发送、接收协议的1\2\3\4\5\6\7的和取反+1）
+* 函数说明:将数组的元素1-倒数第二个元素相加后取反+1（元素个数必须大于2）
+**********************************************************************/
+unsigned char FucCheckSum(unsigned char *i,unsigned char ln)
+{
+  unsigned char j,tempq=0;
+  i+=1;
+  for(j=0;j<(ln-2);j++)
+  {
+    tempq+=*i;
+    i++;
+  }
+  tempq=(~tempq)+1;
+  return(tempq);
 }
 /**
  * serial data read and check
@@ -358,8 +400,10 @@ void serialdata()
           timeout1=0;
         }
       }
+      //hcho
       if(sermode == 2){
         timeout2++;
+        //DS-HCHO
         if(Pm_data[0]==0x42 ){
           Pm_data[1]=Serial.read();delay(2);
           if(Pm_data[1]==0x4d ){
@@ -369,18 +413,35 @@ void serialdata()
               delay(2);
             }
           }
-            check=check+143;
-            if(check==(Pm_data[8]*256+Pm_data[9])){ //DS-HCHO
-              HCHO = (Pm_data[6]*256+Pm_data[7])*pow(10, (4 - Pm_data[5]));
-              timeout2=0;
-            }
+          check=check+143;
+          if(check==(Pm_data[8]*256+Pm_data[9])){ 
+            HCHO = (Pm_data[6]*256+Pm_data[7])*pow(10, (4 - Pm_data[5]));
+            timeout2=0;
+          }
          check=0;   
-        }   
+        } 
+      
+        //HH-HCHO-M/WZ-S/ZE07/ZE08
+        if(Pm_data[0]==0xff ){
+          Pm_data[1]=Serial.read();delay(2);
+          if(Pm_data[1]==0x17 ){
+            for(unsigned char k=2;k<9;k++){
+              Pm_data[k]=Serial.read();
+              delay(2);
+            }
+            if(FucCheckSum(Pm_data,9)==Pm_data[8]){ 
+              HCHO = (Pm_data[4]*256+Pm_data[5]);  // *pow(10, Pm_data[3]); //查手册小数位数
+              timeout2=0;
+            }       
+          }  
+        } 
+          
         if(timeout2 > 6){
           timeout2=0;
           //HCHO = 0x3031;
         }          
       }
+      //co2
       if(sermode == 3){
         timeout3++;
         if(Pm_data[0]==0xfe ){
@@ -674,7 +735,9 @@ void update_lw(){
               if (HCHO < 0x3000){
                 lwc->append("hcho", float(HCHO)/1000);
               }
-              //lwc->append("CO2", CO2);
+              if (CO2 > 0){
+                lwc->append("CO2", CO2);
+              }
               Serial.print("send ");
               lwc->send();
               Serial.print("---send completed \r\n");
@@ -718,8 +781,10 @@ void handleRoot()
     return;
   }
   String s = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/>";
-  s += "<title>Lewei50 PM monitor</title></head><body>YNM3000-3";
+  s += "<title>Lewei50 PM monitor</title></head><body>YNM3000";
   s += "<ul>";
+  s += "<li>IP: ";
+  s += ipStr;
   s += "<li>";
   s += SensorType;
   s += "<li>SN value: ";
@@ -748,11 +813,16 @@ void monitorjson()
     // -- Captive portal request were already served.
     return;
   }
-  root["mac"] = WiFi.macAddress();
-  root["version"] = CONFIG_VERSION;
-  root["SN"] = SNValue;
-  String s;
-  root.printTo(s);
+  String s = "{\"method\":\"uploadsn\",\"mac\":\"";
+  s += WiFi.macAddress();
+  s += "\",\"version\":\"";
+  s += CONFIG_VERSION;
+  s += "\",\"server\":\"PM\",\"SN\":\"";
+  s += SNValue;
+  s += "\",\"Data\":[";
+  s += jsondata;
+  s += "]}";
+  
   server.send(200, "text/html", s);
 }
 
